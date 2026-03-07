@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 import fs from "node:fs";
 import path from "node:path";
 import { REPO_ROOT, MAX_KEEP } from "./config.ts"
