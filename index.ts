@@ -1,22 +1,59 @@
 #!/usr/bin/env bun
 import fs from "node:fs";
 import path from "node:path";
-import { REPO_ROOT, MAX_KEEP } from "./config.ts"
 import type { PackageInfo, Packages } from "./types.ts";
 import pc from "picocolors";
 
 // obtain args 
 const args = process.argv.slice(2);
-const dryRun = args.includes('--dry-run');
-if (dryRun) {
+
+
+function printHelp() {
+    console.log(`
+Usage: bun run index.ts --repo-root <path> --max-keep <number> [--force]
+
+Options:
+  --repo-root <path>    The root directory of the arch package repository (required)
+  --max-keep <number>   The maximum number of package versions to keep (required)
+  --force               Actually delete the old packages (default is dry-run)
+  --help, -h            Show this help message
+    `.trim());
+    process.exit(0);
+}
+
+if (args.includes('--help') || args.includes('-h')) {
+    printHelp();
+}
+
+const force = args.includes('--force');
+
+const repoRootIndex = args.indexOf('--repo-root');
+const REPO_ROOT = (repoRootIndex !== -1 ? args[repoRootIndex + 1] : "") as string;
+
+const maxKeepIndex = args.indexOf('--max-keep');
+const MAX_KEEP = (maxKeepIndex !== -1 ? parseInt(args[maxKeepIndex + 1]!, 10) : -1) as number;
+
+if (!REPO_ROOT) {
+    console.error(pc.red("Error: --repo-root <path> is required."));
+    printHelp();
+    process.exit(1);
+}
+
+if (isNaN(MAX_KEEP) || MAX_KEEP < 0) {
+    console.error(pc.red("Error: --max-keep <number> is required and must be a positive integer."));
+    printHelp();
+    process.exit(1);
+}
+
+if (!force) {
     console.log(pc.bold(
-        `${pc.yellow("==>")} Dry running...`
+        `${pc.yellow("==>")} Dry running (add --force to actually delete)...`
     ))
 }
 
 // read all arch's folders
 const RepoArchFolders = fs.readdirSync(REPO_ROOT, { withFileTypes: true })
-          .filter(item => item.isDirectory()).map(i=>i.name)
+    .filter(item => item.isDirectory()).map(i => i.name)
 
 // read all folders contents
 for (const arch of RepoArchFolders) {
@@ -24,9 +61,9 @@ for (const arch of RepoArchFolders) {
         `${pc.green("==>")} Processing arch ${pc.blue(arch)}...`
     ))
     const PackageFiles = fs.readdirSync(path.join(REPO_ROOT, arch), { withFileTypes: true })
-    .filter(item => item.name.includes(".pkg"))  // ignore all non pkg files
-    .map(i=>i.name)
-    
+        .filter(item => item.name.includes(".pkg"))  // ignore all non pkg files
+        .map(i => i.name)
+
     // extract the package names
     const Packages: Packages = {};
     for (const pkg of PackageFiles) {
@@ -62,7 +99,7 @@ for (const arch of RepoArchFolders) {
             }
             for (const file of list) {
                 const filepath = path.join(REPO_ROOT, arch, file);
-                if (!dryRun) {
+                if (force) {
                     console.log(`     Deleting ${filepath}...`);
                     fs.unlinkSync(filepath);
                 } else {
