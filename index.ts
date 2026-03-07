@@ -52,8 +52,11 @@ if (!force) {
 }
 
 // read all arch's folders
-const RepoArchFolders = fs.readdirSync(REPO_ROOT, { withFileTypes: true })
+let RepoArchFolders = fs.readdirSync(REPO_ROOT, { withFileTypes: true })
     .filter(item => item.isDirectory()).map(i => i.name)
+if (RepoArchFolders.length === 0) {
+    RepoArchFolders = [""]; // default to root if no arch folders found
+}
 
 // read all folders contents
 for (const arch of RepoArchFolders) {
