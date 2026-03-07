@@ -13,6 +13,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@types/node": "^25.3.5",
     "picocolors": "^1.1.1"
   }
 }
