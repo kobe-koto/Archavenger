@@ -98,6 +98,7 @@ for (const arch of RepoArchFolders) {
         ))
         // sort pkgs from new to old
         Packages[pkgname]!.sort(packageSorter);
+        Packages[pkgname]!.reverse();
         // slice off the max keep pkgs
         Packages[pkgname] = Packages[pkgname]!.slice(MAX_KEEP);
         // delete
