@@ -70,9 +70,15 @@ if (RepoArchFolders.length === 0) {
 
 // read all folders contents
 for (const arch of RepoArchFolders) {
-    console.log(pc.bold(
-        `${pc.green("==>")} Processing arch ${pc.blue(arch)}...`
-    ))
+    if (!!arch) {
+        console.log(pc.bold(
+            `${pc.green("==>")} Processing arch ${pc.blue(arch)}...`
+        ))
+    } else {
+        console.log(pc.bold(
+            `${pc.green("==>")} Processing root repo directory...`
+        ))
+    }
     const PackageFiles = fs.readdirSync(path.join(REPO_ROOT, arch), { withFileTypes: true })
         .filter(item => item.name.includes(".pkg"))  // ignore all non pkg files
         .map(i => i.name)
