@@ -1,5 +1,5 @@
 {
-  "name": "arch-repo-cleaner",
+  "name": "archavenger",
   "module": "index.ts",
   "type": "module",
   "private": true,

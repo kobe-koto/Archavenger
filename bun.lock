@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "arch-repo-cleaner",
+      "name": "archavenger",
       "dependencies": {
         "@types/node": "^25.3.5",
         "picocolors": "^1.1.1",
