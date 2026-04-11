@@ -14,7 +14,9 @@ Usage: bun run index.ts --repo-root <path> --max-keep <number> [--force]
 
 Options:
   --repo-root <path>    The root directory of the arch package repository (required)
-  --max-keep <number>   The maximum number of package versions to keep (required)
+  --max-keep <number>   The maximum number of package versions to keep (required), 
+                        must be a positive integer. 
+                        Set to 0 to delete all packages (with confirmation).
   --force               Actually delete the old packages (default is dry-run)
   --help, -h            Show this help message
     `.trim());
@@ -40,9 +42,15 @@ if (!REPO_ROOT) {
 }
 
 const maxKeepIndex = args.indexOf('--max-keep');
-const MAX_KEEP = (maxKeepIndex !== -1 ? parseInt(args[maxKeepIndex + 1]!, 10) : -1) as number;
+const rawMaxKeep = (maxKeepIndex !== -1 ? args[maxKeepIndex + 1] : "") as string;
+const MAX_KEEP = (rawMaxKeep ? parseInt(rawMaxKeep) : NaN);
 if (isNaN(MAX_KEEP) || MAX_KEEP < 0) {
     console.error(pc.red("Error: --max-keep <number> is required and must be a positive integer."));
+    printHelp();
+    process.exit(1);
+} else if (MAX_KEEP === 0 && rawMaxKeep !== "-0") {
+    console.warn(pc.yellow("Warning: --max-keep is set to 0, all packages will be deleted!"));
+    console.warn(pc.yellow("Warning: set --max-keep to \"-0\" to skip this check and actually delete all packages."));
     printHelp();
     process.exit(1);
 }
