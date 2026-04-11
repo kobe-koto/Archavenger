@@ -1,12 +1,12 @@
 #!/usr/bin/env bun
 import fs from "node:fs";
 import path from "node:path";
-import type { PackageInfo, Packages } from "./types.ts";
 import pc from "picocolors";
+import type { PackageInfo, Packages } from "./src/types.ts";
+import { packageSorter } from "./src/packageSorter.ts";
 
 // obtain args 
 const args = process.argv.slice(2);
-
 
 function printHelp() {
     console.log(`
@@ -82,11 +82,19 @@ for (const arch of RepoArchFolders) {
     for (const pkg of PackageFiles) {
         if (pkg.endsWith(".sig")) { continue; }
         const slices = pkg.split(".pkg.tar")[0]!.split("-");
+
+        const __arch = slices.pop()!,
+              __pkgrel = slices.pop()!;
+        const __EpochAndPkgverSlices = slices.pop()!.split(":");
+        const __pkgver = __EpochAndPkgverSlices.pop()!,
+              __epoch = parseInt(__EpochAndPkgverSlices.shift() || "0"); // handle epoch if exists
+
         const PackageInfo: PackageInfo = {
-            arch: slices.pop()!,
-            pkgrel: slices.pop()!,
-            pkgver: slices.pop()!,
-            modifiedTime: fs.statSync(path.join(REPO_ROOT, arch, pkg)).mtimeMs
+            arch: __arch,
+            pkgrel: __pkgrel,
+            pkgver: __pkgver,
+            epoch: __epoch,
+            modifiedTime: fs.statSync(path.join(REPO_ROOT, arch, pkg), { bigint: true }).mtimeMs
         }
         const pkgname = slices.join("-");
         if (!Packages[pkgname]) { Packages[pkgname] = [] } // non empty check
@@ -97,7 +105,7 @@ for (const arch of RepoArchFolders) {
             `${pc.blue("  ->")} Proceeding with ${pc.blue(pkgname)}...`
         ))
         // sort pkgs from new to old
-        Packages[pkgname]!.sort((a, b) => b.modifiedTime - a.modifiedTime);
+        Packages[pkgname]!.sort(packageSorter);
         // slice off the max keep pkgs
         Packages[pkgname] = Packages[pkgname]!.slice(MAX_KEEP);
         // delete
@@ -107,9 +115,14 @@ for (const arch of RepoArchFolders) {
         } else { // generate the list of old pkgs to delete
             const list = [];
             for (const pkg of Packages[pkgname]!) {
-                const pkgFilenameStart = `${pkgname}-${pkg.pkgver}-${pkg.pkgrel}-${pkg.arch}.pkg`;
-                list.push(...PackageFiles.filter(i => i.startsWith(pkgFilenameStart)));
+                let pkgFilenameHead = `${pkgname}-`;
+                if (pkg.epoch > 0) {
+                    pkgFilenameHead += `${pkg.epoch}:`;
+                }
+                pkgFilenameHead += `${pkg.pkgver}-${pkg.pkgrel}-${pkg.arch}.pkg`;
+                list.push(...PackageFiles.filter(i => i.startsWith(pkgFilenameHead)));
             }
+            console.log(pc.yellow(`     Found ${list.length} old pkgs to delete:`));
             for (const file of list) {
                 const filepath = path.join(REPO_ROOT, arch, file);
                 if (force) {
