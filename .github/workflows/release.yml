@@ -29,6 +29,13 @@ jobs:
       - name: Prepare Artifact
         run: mv ./dist/index.js ./dist/archavenger.min.js
 
+      - name: Generate Release Notes
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          bash ./.github/generate-release-notes.sh
+
       - name: Upload Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
