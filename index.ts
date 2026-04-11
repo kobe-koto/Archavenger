@@ -28,17 +28,19 @@ if (args.includes('--help') || args.includes('-h')) {
 const force = args.includes('--force');
 
 const repoRootIndex = args.indexOf('--repo-root');
-const REPO_ROOT = (repoRootIndex !== -1 ? args[repoRootIndex + 1] : "") as string;
-
-const maxKeepIndex = args.indexOf('--max-keep');
-const MAX_KEEP = (maxKeepIndex !== -1 ? parseInt(args[maxKeepIndex + 1]!, 10) : -1) as number;
-
+const REPO_ROOT = (repoRootIndex !== -1 ? path.resolve(args[repoRootIndex + 1]!) : "") as string;
 if (!REPO_ROOT) {
     console.error(pc.red("Error: --repo-root <path> is required."));
     printHelp();
     process.exit(1);
+} else if (!fs.existsSync(REPO_ROOT) || !fs.statSync(REPO_ROOT).isDirectory()) {
+    console.error(pc.red(`Error: The specified --repo-root path "${REPO_ROOT}" does not exist or is not a directory.`));
+    printHelp();
+    process.exit(1);
 }
 
+const maxKeepIndex = args.indexOf('--max-keep');
+const MAX_KEEP = (maxKeepIndex !== -1 ? parseInt(args[maxKeepIndex + 1]!, 10) : -1) as number;
 if (isNaN(MAX_KEEP) || MAX_KEEP < 0) {
     console.error(pc.red("Error: --max-keep <number> is required and must be a positive integer."));
     printHelp();
