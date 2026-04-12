@@ -66,8 +66,13 @@ for (const arch of RepoArchFolders) {
         // sort pkgs from new to old
         Packages[pkgname]!.sort(packageSorter);
         Packages[pkgname]!.reverse();
-        // slice off the max keep pkgs
-        Packages[pkgname] = Packages[pkgname]!.slice(options.maxKeep);
+        if (options.existingPackageNames.includes(pkgname) || options.existingPackageNames.length === 0) {
+            // slice off the max keep pkgs
+            Packages[pkgname] = Packages[pkgname]!.slice(options.maxKeep);
+        } else {
+            console.log(pc.yellow(`     Package ${pkgname} is no longer in builder configs, removing all leftover pkgs...`));
+            Packages[pkgname] = Packages[pkgname]!;
+        }
         // delete
         if (Packages[pkgname]!.length === 0) {
             console.log(pc.gray("     No old pkgs to delete, skipping..."));

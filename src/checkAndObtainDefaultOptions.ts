@@ -1,6 +1,7 @@
 import commandLineArgs from "command-line-args";
 import { commandLineUsages } from "./commandLineUsages.ts";
 import { optionDefinitions } from "./optionDefinitions.ts";
+import { readPreAURConfigs } from "./utils/PreAURConfig.ts";
 import pc from "picocolors";
 import path from "node:path";
 import fs from "node:fs";
@@ -43,9 +44,12 @@ export function checkAndObtainDefaultOptions () {
         process.exit(1);
     }
 
+    const preAurPackageNames = options["preaur-config"] ? readPreAURConfigs(options["preaur-config"]) : [];
+
     return {
         repoRoot: REPO_ROOT,
         maxKeep: MAX_KEEP,
-        force: options.force || false
+        force: options.force || false,
+        existingPackageNames: [...preAurPackageNames]
     };
 }
