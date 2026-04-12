@@ -1,7 +1,10 @@
 import commandLineArgs from "command-line-args";
 import { commandLineUsages } from "./commandLineUsages.ts";
 import { optionDefinitions } from "./optionDefinitions.ts";
+
 import { readPreAURConfigs } from "./utils/PreAURConfig.ts";
+import { readLilacConfigs } from "./utils/LilacConfig.ts";
+
 import pc from "picocolors";
 import path from "node:path";
 import fs from "node:fs";
@@ -45,11 +48,16 @@ export function checkAndObtainDefaultOptions () {
     }
 
     const preAurPackageNames = options["preaur-config"] ? readPreAURConfigs(options["preaur-config"]) : [];
+    const lilacPackageNames = options["lilac-config"] ? readLilacConfigs(options["lilac-config"]) : [];
+    const existingPackageNames = [...new Set([
+        ...preAurPackageNames, 
+        ...lilacPackageNames
+    ])]; // deduplicate package names from both configs
 
     return {
         repoRoot: REPO_ROOT,
         maxKeep: MAX_KEEP,
         force: options.force || false,
-        existingPackageNames: [...preAurPackageNames]
+        existingPackageNames: existingPackageNames
     };
 }

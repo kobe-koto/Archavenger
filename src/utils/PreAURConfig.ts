@@ -20,7 +20,5 @@ export function readPreAURConfigs (paths: string[]) {
             process.exit(1);
         }
     }
-    // unique package names
-    const uniquePackageNames = new Set(packageNames);
-    return Array.from(uniquePackageNames);
+    return packageNames;
 }
