@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import fs from "node:fs";
 import path from "node:path";
+import { spawnSync } from "node:child_process";
 import pc from "picocolors";
 import type { PackageInfo, Packages } from "./src/types.ts";
 import { packageSorter } from "./src/packageSorter.ts";
@@ -72,6 +73,22 @@ for (const arch of RepoArchFolders) {
         } else {
             console.log(pc.yellow(`     Package ${pkgname} is no longer in builder configs, removing all leftover pkgs...`));
             Packages[pkgname] = Packages[pkgname]!;
+            if (options.force) {
+                // repo-remove [options] <path-to-db> <packagename> 
+                const repoRemoveCmd = `repo-remove "${options.repoDbPath}" "${pkgname}"`;
+                const repoRemoveProcess = spawnSync(repoRemoveCmd, { shell: true, env: { ...process.env, LANG: "C" } });
+                if (repoRemoveProcess.status !== 0) {
+                    console.error(pc.red(`Error: repo-remove command failed for package ${pkgname}.`));
+                    console.error(pc.red(`Command: ${repoRemoveCmd}`));
+                    console.error(pc.red(`Exit code: ${repoRemoveProcess.status}`));
+                    console.error(pc.red(`output: ${repoRemoveProcess.output.toString()}`));
+                    process.exit(1);
+                } else {
+                    console.log(pc.green(`     Successfully removed ${pkgname} from repo db.`));
+                }
+            } else {
+                console.log(pc.gray(`     Skipping repo-remove for ${pkgname}...`));
+            }
         }
         // delete
         if (Packages[pkgname]!.length === 0) {

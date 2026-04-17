@@ -54,10 +54,58 @@ export function checkAndObtainDefaultOptions () {
         ...lilacPackageNames
     ])]; // deduplicate package names from both configs
 
+    let repoDbPath;
+    if (existingPackageNames.length > 0) {
+        repoDbPath = options["repo-db-path"] ? path.resolve(options["repo-db-path"]) : null;
+        
+        if (!repoDbPath) {
+            let detectedDbPath: string | null = null;
+            // ls repo root for repo.db
+            const filteredFiles = fs.readdirSync(REPO_ROOT)
+                .filter(file => file.includes(".db") && !file.startsWith("pkginfo.db") && !file.endsWith(".old"));
+            const dbFiles = filteredFiles.filter(file => file.endsWith(".db"));
+            if (dbFiles.length === 0) {
+                console.error(pc.red(`Error: No .db file found in the repo root "${REPO_ROOT}".`));
+            } else if (dbFiles.length !== 1) {
+                console.error(pc.red(`Error: Multiple .db files found in the repo root "${REPO_ROOT}", unable to auto-detect.`));
+            } else {
+                const dbArchives = filteredFiles.filter(file => file.startsWith(dbFiles[0]!) && file !== dbFiles[0]!);
+                if (dbArchives.length > 1) {
+                    console.error(pc.red(`Error: Found multiple archive files for "${dbFiles[0]}" in the repo root "${REPO_ROOT}", unable to auto-detect.`));
+                    console.error(pc.red(`Found archive files: ${dbArchives.join(", ")}`));
+                    process.exit(1);
+                } else if (dbArchives.length === 0) {
+                    console.error(pc.red(`Error: No archive file found for "${dbFiles[0]}" in the repo root "${REPO_ROOT}", unable to auto-detect.`));
+                    process.exit(1);
+                } else {
+                    detectedDbPath = path.join(REPO_ROOT, dbArchives[0]!);
+                    console.log(pc.green(`Using auto-detected repo db file at "${detectedDbPath}".`));
+                }
+            }
+
+            if (detectedDbPath) {
+                repoDbPath = detectedDbPath;
+            } else {
+                console.error(pc.red(`Error: No .db file provided and auto-detection failed, exiting...`));
+                process.exit(1);
+            }
+        } else if (!fs.existsSync(repoDbPath)) {
+            console.error(pc.red(`Error: The specified repo-db-path "${repoDbPath}" does not exist.`));
+            process.exit(1);
+        } else if (fs.statSync(repoDbPath).isDirectory()) {
+            console.error(pc.red(`Error: The specified repo-db-path "${repoDbPath}" is a directory, expected a file path.`));
+            process.exit(1);
+        } else if (repoDbPath.endsWith(".db")) {
+            console.error(pc.red(`Error: The specified repo-db-path "${repoDbPath}" is not a db archive.`));
+            process.exit(1);
+        }
+    }
+
     return {
         repoRoot: REPO_ROOT,
         maxKeep: MAX_KEEP,
         force: options.force || false,
-        existingPackageNames: existingPackageNames
+        existingPackageNames: existingPackageNames,
+        repoDbPath: repoDbPath
     };
 }
