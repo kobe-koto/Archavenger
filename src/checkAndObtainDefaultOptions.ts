@@ -54,11 +54,11 @@ export function checkAndObtainDefaultOptions () {
         ...lilacPackageNames
     ])]; // deduplicate package names from both configs
 
-    let repoDbPath;
+    let repoDbPath: string = "";
     if (existingPackageNames.length > 0) {
-        repoDbPath = options["repo-db-path"] ? path.resolve(options["repo-db-path"]) : null;
+        const resolvedRepoDbPath = options["repo-db-path"] ? path.resolve(options["repo-db-path"]) : null;
         
-        if (!repoDbPath) {
+        if (!resolvedRepoDbPath) {
             let detectedDbPath: string | null = null;
             // ls repo root for repo.db
             const filteredFiles = fs.readdirSync(REPO_ROOT)
@@ -89,15 +89,17 @@ export function checkAndObtainDefaultOptions () {
                 console.error(pc.red(`Error: No .db file provided and auto-detection failed, exiting...`));
                 process.exit(1);
             }
-        } else if (!fs.existsSync(repoDbPath)) {
-            console.error(pc.red(`Error: The specified repo-db-path "${repoDbPath}" does not exist.`));
+        } else if (!fs.existsSync(resolvedRepoDbPath)) {
+            console.error(pc.red(`Error: The specified repo-db-path "${resolvedRepoDbPath}" does not exist.`));
             process.exit(1);
-        } else if (fs.statSync(repoDbPath).isDirectory()) {
-            console.error(pc.red(`Error: The specified repo-db-path "${repoDbPath}" is a directory, expected a file path.`));
+        } else if (fs.statSync(resolvedRepoDbPath).isDirectory()) {
+            console.error(pc.red(`Error: The specified repo-db-path "${resolvedRepoDbPath}" is a directory, expected a file path.`));
             process.exit(1);
-        } else if (repoDbPath.endsWith(".db")) {
-            console.error(pc.red(`Error: The specified repo-db-path "${repoDbPath}" is not a db archive.`));
+        } else if (resolvedRepoDbPath.endsWith(".db")) {
+            console.error(pc.red(`Error: The specified repo-db-path "${resolvedRepoDbPath}" is not a db archive.`));
             process.exit(1);
+        } else {
+            repoDbPath = resolvedRepoDbPath;
         }
     }
 
