@@ -107,6 +107,7 @@ export function checkAndObtainDefaultOptions () {
         repoRoot: REPO_ROOT,
         maxKeep: MAX_KEEP,
         force: options.force || false,
+        removeOrphanFiles: options["remove-orphan-files"] || false,
         existingPackageNames: existingPackageNames,
         repoDbPath: repoDbPath
     };

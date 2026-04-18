@@ -58,17 +58,27 @@ export function parsePackages(subdirPackageFiles: string[], repoRoot: string, su
             files: [ ...packageFiles, ...packageDebugSymbolFiles ],
             hasDebugSymbols: packageDebugSymbolFiles.length > 0
         }
-        // console.log(PackageInfo);
+        
+        // remove matched files from the list to avoid duplicate processing
+        const filesSet = new Set(PackageInfo.files);
+        subdirPackageFiles = subdirPackageFiles.filter(file => !filesSet.has(file));
+
         if (!Packages[pkgname]) { Packages[pkgname] = [] } // non empty check
+
         Packages[pkgname].push(PackageInfo)
     }
-    
+
     // sort pkgs from new to old
     for (const pkgname in Packages) {
         Packages[pkgname]!.sort(packageSorter);
         Packages[pkgname]!.reverse();
     }
-    return Packages;
+    return {
+        // remaining of subdirPackageFiles is isolated/orphan files, 
+        // a -debug w/o a main, a .sig w/o a pkg to sign, etc
+        orphanFiles: subdirPackageFiles,
+        Packages,
+    };
 }
 
 export function removeFromRepoDb(repoDbPath: string, pkgname: string) {

@@ -30,7 +30,25 @@ for (const subdir of RepoSubdirs) {
 
     // extract the package names
     const PackageFiles = readPackageFiles(options.repoRoot, subdir);
-    const Packages = parsePackages(PackageFiles, options.repoRoot, subdir);
+    const { orphanFiles, Packages } = parsePackages(PackageFiles, options.repoRoot, subdir);
+    if (options.removeOrphanFiles && orphanFiles.length > 0) {
+        console.log(pc.yellow(`     Found ${orphanFiles.length} orphan files that don't match any package:`));
+        for (const file of orphanFiles) {
+            console.log(pc.yellow(`     - ${file}`));
+            const filePath = path.join(options.repoRoot, subdir, file);
+            if (options.force) {
+                try {
+                    fs.rmSync(filePath);
+                    console.log(pc.green(`       Successfully deleted ${file}...`));
+                } catch (error) {
+                    console.error(pc.red(`Error: Failed to delete file ${file}.`));
+                    console.error(pc.red(`Error details: ${error instanceof Error ? error.message : String(error)}`));
+                }
+            } else {
+                console.log(pc.gray(`       Skipping deletion of ${file}...`));
+            }
+        }
+    }
     for (const pkgname in Packages) {
         console.log(pc.bold(
             `${pc.blue("  ->")} Proceeding with ${pc.blue(pkgname)}...`

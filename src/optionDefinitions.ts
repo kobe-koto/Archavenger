@@ -22,6 +22,10 @@ export const ArchavengerOptionDefs: archavengerOptionDef[] = [
         name: "lilac-config",
         type: String, multiple: true, 
         description: "Path to lilac PKGBUILD parent directory(s) to to remove packages that's no longer maintained." 
+    }, {
+        name: "remove-orphan-files",
+        type: Boolean,
+        description: "Whether to remove orphan files that don't match any package (use with caution!)"
     }, { 
         name: "force", alias: "f",
         type: Boolean, 
