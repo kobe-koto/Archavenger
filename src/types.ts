@@ -10,3 +10,8 @@ export type PackageInfo = {
 export type Packages = {
     [pkgname: string]: PackageInfo[]
 }
+export type OperationResult = {
+    status: "success" | "error" | "warning" | "skipped",
+    message: string,
+    details?: any
+}

@@ -1,9 +1,8 @@
 #!/usr/bin/env bun
-import fs from "node:fs";
 import path from "node:path";
 import pc from "picocolors";
 import { checkAndObtainDefaultOptions } from "./src/checkAndObtainDefaultOptions.ts";
-import { readRepoSubdirs, readPackageFiles, parsePackages, removeFromRepoDb } from "./src/repoOperator.ts";
+import { readRepoSubdirs, readPackageFiles, parsePackages, removeFromRepoDb, deleteFile } from "./src/repoOperator.ts";
 
 const options = checkAndObtainDefaultOptions();
 
@@ -32,21 +31,14 @@ for (const subdir of RepoSubdirs) {
     const PackageFiles = readPackageFiles(options.repoRoot, subdir);
     const { orphanFiles, Packages } = parsePackages(PackageFiles, options.repoRoot, subdir);
     if (options.removeOrphanFiles && orphanFiles.length > 0) {
-        console.log(pc.yellow(`     Found ${orphanFiles.length} orphan files that don't match any package:`));
+        console.log(pc.yellow(`     Found ${orphanFiles.length} orphan files that don't match any package, deleting...`));
         for (const file of orphanFiles) {
-            console.log(pc.yellow(`     - ${file}`));
-            const filePath = path.join(options.repoRoot, subdir, file);
-            if (options.force) {
-                try {
-                    fs.rmSync(filePath);
-                    console.log(pc.green(`       Successfully deleted ${file}...`));
-                } catch (error) {
-                    console.error(pc.red(`Error: Failed to delete file ${file}.`));
-                    console.error(pc.red(`Error details: ${error instanceof Error ? error.message : String(error)}`));
-                }
-            } else {
-                console.log(pc.gray(`       Skipping deletion of ${file}...`));
-            }
+            const result = deleteFile(
+                path.join(options.repoRoot, subdir, file), 
+                options.force
+            );
+            console.log(`       ${result.message}`);
+            result.details && console.log(`       Details: ${result.details}`);
         }
     }
     for (const pkgname in Packages) {
@@ -70,15 +62,22 @@ for (const subdir of RepoSubdirs) {
 
         // remove from repo db?
         if (needRemoveFromRepoDb) {
+            const removalResult = removeFromRepoDb(options.repoDbPath, pkgname, options.force);
+            console.log(`     ${removalResult.message}`);
+            removalResult.details && console.log(`     Details: ${removalResult.details}`);
+            if (Packages[pkgname]!.some(pkg => pkg.hasDebugSymbols)) {
+                const debugPkgname = pkgname + "-debug";
+                const debugSymbolRemovalResult = removeFromRepoDb(options.repoDbPath, debugPkgname, options.force);
+                console.log(`     ${debugSymbolRemovalResult.message}`);
+                debugSymbolRemovalResult.details && console.log(`     Details: ${debugSymbolRemovalResult.details}`);
+            }
+
+            
+
             if (options.force) {
                 try {
                     removeFromRepoDb(options.repoDbPath, pkgname);
-                    console.log(pc.green(`     Successfully removed ${pkgname} from repo db.`));
-                    if (Packages[pkgname]!.some(pkg => pkg.hasDebugSymbols)) {
-                        const debugPkgname = pkgname + "-debug";
-                        removeFromRepoDb(options.repoDbPath, debugPkgname);
-                        console.log(pc.green(`     Successfully removed ${debugPkgname} from repo db.`));
-                    }
+                    console.log(pc.green(`Successfully removed ${pkgname} from repo db.`));
                 } catch (error) {
                     console.error(pc.red(`Error: repo-remove command failed for package ${pkgname}.`));
                     console.error(pc.red(`Error details: ${error instanceof Error ? error.message : String(error)}`));
@@ -99,18 +98,12 @@ for (const subdir of RepoSubdirs) {
         } else {
             for (const pkgInfo of Packages[pkgname]!) {
                 for (const file of pkgInfo.files) {
-                    const filePath = path.join(options.repoRoot, subdir, file);
-                    if (options.force) {
-                        try {
-                            fs.rmSync(filePath);
-                            console.log(pc.green(`     Successfully deleted ${file}...`));
-                        } catch (error) {
-                            console.error(pc.red(`Error: Failed to delete file ${file}.`));
-                            console.error(pc.red(`Error details: ${error instanceof Error ? error.message : String(error)}`));
-                        }
-                    } else {
-                        console.log(pc.gray(`     Skipping deletion of ${file}...`));
-                    }
+                    const result = deleteFile(
+                        path.join(options.repoRoot, subdir, file), 
+                        options.force
+                    );
+                    console.log(`     ${result.message}`);
+                    result.details && console.log(`     Details: ${result.details}`);
                 }
             }
         }

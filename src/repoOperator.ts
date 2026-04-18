@@ -1,8 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
+import pc from "picocolors";
 import { packageSorter } from "./packageSorter.ts";
-import type { PackageInfo, Packages } from "./types.ts";
+import type { OperationResult, PackageInfo, Packages } from "./types.ts";
 
 export function readRepoSubdirs(repoRoot: string): string[] {
     const RepoArchFolders = fs.readdirSync(repoRoot, { withFileTypes: true })
@@ -81,12 +82,52 @@ export function parsePackages(subdirPackageFiles: string[], repoRoot: string, su
     };
 }
 
-export function removeFromRepoDb(repoDbPath: string, pkgname: string) {
+export function removeFromRepoDb(repoDbPath: string, pkgname: string, force = false): OperationResult {
     // repo-remove [options] <path-to-db> <packagename> 
-    const repoRemoveCmd = `repo-remove "${repoDbPath}" "${pkgname}"`;
-    const repoRemoveProcess = spawnSync(repoRemoveCmd, { shell: true, env: { ...process.env, LANG: "C" } });
-    if (repoRemoveProcess.status !== 0) {
-        throw new Error(`repo-remove command failed for package ${pkgname} with exit code ${repoRemoveProcess.status}. \nCommand: ${repoRemoveCmd}, output: ${repoRemoveProcess.output.toString()}`);
+    if (force) {
+        const repoRemoveCmd = `repo-remove "${repoDbPath}" "${pkgname}"`;
+        const repoRemoveProcess = spawnSync(repoRemoveCmd, { shell: true, env: { ...process.env, LANG: "C" } });
+        if (repoRemoveProcess.status !== 0) {
+            return {
+                status: "error",
+                message: pc.red(`Failed to remove ${pkgname} from repo db.`),
+                details: `repo-remove command failed for package ${pkgname} with exit code ${repoRemoveProcess.status}. \n` + 
+                         `Command: ${repoRemoveCmd}, output: ${repoRemoveProcess.output.toString()}`
+            }
+        } else {
+            return {
+                status: "success",
+                message: pc.green(`Successfully removed ${pkgname} from repo db.`)
+            }
+        }
+    } else {
+        return {
+            status: "skipped",
+            message: pc.gray(`Skipped repo-remove for ${pkgname}...`)
+        }
     }
-    return repoRemoveProcess;
+}
+
+export function deleteFile(filePath: string, force = false): OperationResult {
+    const filename = path.basename(filePath);
+    if (force) {
+        try {
+            fs.rmSync(filePath);
+            return {
+                status: "success",
+                message: pc.green(`Successfully deleted file ${filename}.`)
+            }
+        } catch (error) {
+            return {
+                status: "error",
+                message: pc.red(`Failed to delete file ${filename}.`),
+                details: error instanceof Error ? error.message : String(error)
+            }
+        }
+    } else {
+        return {
+            status: "skipped",
+            message: pc.gray(`Skipped deletion of file ${filename}.`)
+        }
+    }
 }
