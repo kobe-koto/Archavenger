@@ -67,12 +67,23 @@ for (const arch of RepoArchFolders) {
         // sort pkgs from new to old
         Packages[pkgname]!.sort(packageSorter);
         Packages[pkgname]!.reverse();
+
+        let removeFromRepoDb = false;
+        if (options.maxKeep === 0) {
+            console.log(pc.yellow(`     --max-keep is set to 0, removing from repo db and deleting all packages...`));
+            removeFromRepoDb = true;
+        }
+        
         if (options.existingPackageNames.includes(pkgname) || options.existingPackageNames.length === 0) {
             // slice off the max keep pkgs
             Packages[pkgname] = Packages[pkgname]!.slice(options.maxKeep);
         } else {
             console.log(pc.yellow(`     Package ${pkgname} is no longer in builder configs, removing all leftover pkgs...`));
             Packages[pkgname] = Packages[pkgname]!;
+            removeFromRepoDb = true;
+        }
+
+        if (removeFromRepoDb) {
             if (options.force) {
                 // repo-remove [options] <path-to-db> <packagename> 
                 const repoRemoveCmd = `repo-remove "${options.repoDbPath}" "${pkgname}"`;
