@@ -108,6 +108,7 @@ export function checkAndObtainDefaultOptions () {
         maxKeep: MAX_KEEP,
         force: options.force || false,
         removeOrphanFiles: options["remove-orphan-files"] || false,
+        removeNonExistingPackages: options["remove-nonexisting-packages"] || false,
         existingPackageNames: existingPackageNames,
         repoDbPath: repoDbPath
     };

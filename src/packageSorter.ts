@@ -1,5 +1,8 @@
-import type { PackageInfo } from "./types.ts";
-export const packageSorter = (a: PackageInfo, b: PackageInfo) => {
+import type { ExtendedPackageInfo, PackageInfo } from "./types.ts";
+export const packageSorter = (
+    a: ExtendedPackageInfo | PackageInfo, 
+    b: ExtendedPackageInfo | PackageInfo
+) => {
     // Implementation for sorting packages (from old to new)
     // epoch > pkgver > pkgrel
     // assuming modifiedTime (BigInts) is not reliable.... it is, but keep it for fallback
@@ -17,7 +20,9 @@ export const packageSorter = (a: PackageInfo, b: PackageInfo) => {
         }
         return a.pkgrel.localeCompare(b.pkgrel);
     }
-    if (a.modifiedTime < b.modifiedTime) return -1;
-    if (a.modifiedTime > b.modifiedTime) return 1;
+    if ("modifiedTime" in a && "modifiedTime" in b) {
+        if (a.modifiedTime < b.modifiedTime) return -1;
+        if (a.modifiedTime > b.modifiedTime) return 1;
+    }
     return 0;
 }

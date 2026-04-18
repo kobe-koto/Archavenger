@@ -3,7 +3,7 @@ import path from "node:path";
 import pc from "picocolors";
 import { spawnSync } from "node:child_process";
 import { packageSorter } from "./packageSorter.ts";
-import type { OperationResult, PackageInfo, Packages } from "./types.ts";
+import type { OperationResult, ExtendedPackageInfo, PackageInfo, ExtendedPackages, Packages } from "./types.ts";
 
 export class RepoOperator {
     repoDBPath: string;
@@ -22,7 +22,7 @@ export class RepoOperator {
             .map(i => i.name)
     }
     parsePackages = (subdirPackageFiles: string[]) => {
-        const Packages: Packages = {};
+        const Packages: ExtendedPackages = {};
         for (const pkg of subdirPackageFiles) {
             if (pkg.endsWith(".sig")) { continue }; // ignore signature files
             const slices = pkg.split(".pkg.tar")[0]!.split("-");
@@ -50,7 +50,7 @@ export class RepoOperator {
                 i => i.startsWith(pkgname + "-debug-" + pkgFilePattern)
             );
 
-            const PackageInfo: PackageInfo = {
+            const PackageInfo: ExtendedPackageInfo = {
                 arch: __arch,
                 pkgrel: __pkgrel,
                 pkgver: __pkgver,
@@ -139,4 +139,53 @@ export function readRepoSubdirs(repoRoot: string): string[] {
     } else {
         return RepoArchFolders;
     }
+}
+
+export async function readPackagesFromRepoDB(repoDBPath: string): Promise<Packages> {
+    const tarball = await Bun.file(repoDBPath).bytes();
+    const archive = new Bun.Archive(tarball);
+    const files = await archive.files();
+
+    const debugSymbolPackageDescFiles: Map<string, File> = new Map();
+    for (const [path, file] of files) {
+        if (path.endsWith("-debug/desc")) {
+            debugSymbolPackageDescFiles.set(path, file);
+        }
+    }
+    for (const [path] of debugSymbolPackageDescFiles) {
+        files.delete(path);
+    }
+
+    // List all files in the archive
+    const packages: Packages = {};
+    for (const [path, file] of files) {
+        // path all looks like pkgname-pkgnamept2-pkgver-pkgrel/desc
+        const slices = path.replace(/\/desc$/, "").split("-")
+        const __pkgrel = slices.pop()!;
+        const __EpochAndPkgverSlices = slices.pop()!.split(":");
+        const __pkgver = __EpochAndPkgverSlices.pop()!,
+              __epoch = parseInt(__EpochAndPkgverSlices.shift() || "0"); // handle epoch if exists
+        const pkgname = slices.join("-");
+
+        if (pkgname.endsWith("-debug")) { continue }; // ignore debug symbol packages
+
+        // read the desc file to get arch
+        // find which line "%ARCH%" is and next line is the arch
+        const fileContentSlices = (await file.text()).split("\n");
+        const archKeyIndex = fileContentSlices.findIndex(line => line.trim() === "%ARCH%");
+        const __arch = fileContentSlices[archKeyIndex+1]?.trim();
+
+        if (!packages[pkgname]) { packages[pkgname] = [] } // non empty check
+
+        packages[pkgname].push({
+            arch: __arch!,
+            pkgrel: __pkgrel,
+            pkgver:__pkgver,
+            epoch: __epoch,
+            hasDebugSymbols: files.keys().toArray().some(pkg => pkg.startsWith(`${pkgname}-debug`))
+        })
+
+    }
+
+    return packages;
 }

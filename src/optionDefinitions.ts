@@ -26,6 +26,10 @@ export const ArchavengerOptionDefs: archavengerOptionDef[] = [
         name: "remove-orphan-files",
         type: Boolean,
         description: "Whether to remove orphan files that don't match any package (use with caution!)"
+    }, {
+        name: "remove-nonexisting-packages",
+        type: Boolean,
+        description: "Whether to remove packages that are not present in the repository but in the database (use with caution!)"
     }, { 
         name: "force", alias: "f",
         type: Boolean, 
