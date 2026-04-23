@@ -1,8 +1,15 @@
 import commandLineUsage from "command-line-usage";
 import { ArchavengerOptionDefs } from "./optionDefinitions.ts";
 
-import { readFileSync } from "node:fs";
-const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8"));
+declare const VERSION: string;
+let displayVersion;
+try {
+  displayVersion = VERSION;
+} catch (e) {
+  const { readFileSync } = await import("node:fs");
+  const { version } = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf-8"));
+  displayVersion = version;
+}
 
 export const commandLineUsages = commandLineUsage([
   {
@@ -15,6 +22,6 @@ export const commandLineUsages = commandLineUsage([
   },
   {
     header: "About",
-    content: `Home {underline https://github.com/kobe-koto/Archavenger} \nVersion: ${version}`
+    content: `Home {underline https://github.com/kobe-koto/Archavenger} \nVersion: ${displayVersion}`
   }
 ]);
