@@ -2,7 +2,7 @@
 import pc from "picocolors";
 import { TreeLogger } from "./src/TreeLogger.ts";
 import { checkAndObtainDefaultOptions } from "./src/checkAndObtainDefaultOptions.ts";
-import { readRepoSubdirs, readPackagesFromRepoDB, RepoOperator } from "./src/repoOperator.ts";
+import { readRepoSubdirs, RepoOperator } from "./src/repoOperator.ts";
 
 const mainTreeLogger = new TreeLogger(0);
 const subdirLogger = mainTreeLogger.createChildLogger(2);
@@ -17,14 +17,9 @@ if (!options.force) {
 }
 
 
-// record all pkgnames that should be preserved in db
-let pkgnames = new Set<string>();
 // read all arch's folders
 const RepoSubdirs = readRepoSubdirs(options.repoRoot);
 for (const subdir of RepoSubdirs) {
-    const RepoOperatorInstance = new RepoOperator(options.repoDbPath, options.repoRoot, subdir, options.force);
-    const { readPackageFiles, parsePackages, removeFromRepoDb, deleteFile } = RepoOperatorInstance;
-
     if (!!subdir) {
         mainTreeLogger.log(pc.bold(
             `${pc.green("==>")} Processing subdir ${pc.blue(subdir)}...`
@@ -35,9 +30,16 @@ for (const subdir of RepoSubdirs) {
         ))
     }
 
+    const RepoOperatorInstance = new RepoOperator(options.repoRoot, subdir, options.force);
+    const { readPackageFiles, parsePackages, removeFromRepoDb, deleteFile } = RepoOperatorInstance;
+
+
+
     // extract the package names
     const PackageFiles = readPackageFiles();
     const { orphanFiles, Packages } = parsePackages(PackageFiles);
+
+    // remove orphan files
     if (options.removeOrphanFiles && orphanFiles.length > 0) {
         subdirLogger.log(pc.bold(pc.yellow(`${pc.blue("->")} Deleting ${orphanFiles.length} orphan files...`)));
         for (const filename of orphanFiles) {
@@ -46,6 +48,10 @@ for (const subdir of RepoSubdirs) {
             result.details && packageProcessingLogger.log(`Details: ${result.details}`);
         }
     }
+
+    // gc old pkgs and remove from db if needed
+    //  - record all pkgnames that should be preserved in db
+    let pkgnames = new Set<string>();
     for (const pkgname in Packages) {
         subdirLogger.log(pc.bold(
             `${pc.blue("->")} Proceeding with ${pc.blue(pkgname)}...`
@@ -93,27 +99,26 @@ for (const subdir of RepoSubdirs) {
             }
         }
     }
-}
 
-// remove non existing packages from rpeo db
-if (options.removeNonExistingPackages) {
-    const RepoOperatorInstance = new RepoOperator(options.repoDbPath, options.repoRoot, "", options.force);
-    // read all packages from the repo db
-    const allPackages = await readPackagesFromRepoDB(options.repoDbPath);
-    const pkgnamesInDB = new Set(Object.keys(allPackages));
-    const pkgnamesDiff = pkgnamesInDB.difference(pkgnames);
-    if (pkgnamesDiff.size > 0) {
-        subdirLogger.log(pc.bold(pc.yellow(`${pc.blue("->")} Removing ${pkgnamesDiff.size} non existing packages from rpeo...`)));
-    }
-    for (let pkgname of pkgnamesDiff) {
-        const removalResult = RepoOperatorInstance.removeFromRepoDb(pkgname);
-        packageProcessingLogger.log(removalResult.message);
-        removalResult.details && packageProcessingLogger.log(`Details: ${removalResult.details}`);
-        if (allPackages[pkgname]!.some(pkg => pkg.hasDebugSymbols)) {
-            const debugPkgname = pkgname + "-debug";
-            const debugSymbolRemovalResult = RepoOperatorInstance.removeFromRepoDb(debugPkgname);
-            packageProcessingLogger.log(debugSymbolRemovalResult.message);
-            debugSymbolRemovalResult.details && packageProcessingLogger.log(`Details: ${debugSymbolRemovalResult.details}`);
+    // remove non existing packages from rpeo db
+    if (options.removeNonExistingPackages) {
+        // read all packages from the repo db
+        const allPackages = await RepoOperatorInstance.readPackagesFromRepoDB();
+        const pkgnamesInDB = new Set(Object.keys(allPackages));
+        const pkgnamesDiff = pkgnamesInDB.difference(pkgnames);
+        if (pkgnamesDiff.size > 0) {
+            subdirLogger.log(pc.bold(pc.yellow(`${pc.blue("->")} Removing ${pkgnamesDiff.size} non existing packages from rpeo...`)));
+        }
+        for (let pkgname of pkgnamesDiff) {
+            const removalResult = RepoOperatorInstance.removeFromRepoDb(pkgname);
+            packageProcessingLogger.log(removalResult.message);
+            removalResult.details && packageProcessingLogger.log(`Details: ${removalResult.details}`);
+            if (allPackages[pkgname]!.some(pkg => pkg.hasDebugSymbols)) {
+                const debugPkgname = pkgname + "-debug";
+                const debugSymbolRemovalResult = RepoOperatorInstance.removeFromRepoDb(debugPkgname);
+                packageProcessingLogger.log(debugSymbolRemovalResult.message);
+                debugSymbolRemovalResult.details && packageProcessingLogger.log(`Details: ${debugSymbolRemovalResult.details}`);
+            }
         }
     }
 }

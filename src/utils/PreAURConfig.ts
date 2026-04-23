@@ -3,7 +3,7 @@ import path from "node:path";
 import { YAML } from "bun";
 
 // returns all package name in the PreAUR config files
-export function readPreAURConfigs (paths: string[]) {
+export function readPreAURConfigs(paths: string[]) {
     const packageNames = [];
     for (const p of paths) {
         try {

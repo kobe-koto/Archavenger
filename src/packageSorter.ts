@@ -1,6 +1,6 @@
 import type { ExtendedPackageInfo, PackageInfo } from "./types.ts";
 export const packageSorter = (
-    a: ExtendedPackageInfo | PackageInfo, 
+    a: ExtendedPackageInfo | PackageInfo,
     b: ExtendedPackageInfo | PackageInfo
 ) => {
     // Implementation for sorting packages (from old to new)

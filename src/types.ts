@@ -6,7 +6,7 @@ export type PackageInfo = {
     hasDebugSymbols?: boolean
 }
 export type ExtendedPackageInfo = PackageInfo & {
-    modifiedTime: number |  BigInt,
+    modifiedTime: number | BigInt,
     files: string[]
 }
 export type Packages = {

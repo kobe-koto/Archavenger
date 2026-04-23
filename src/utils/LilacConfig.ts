@@ -1,8 +1,5 @@
 import fs from "node:fs";
 import path from "node:path";
-import { YAML } from "bun";
-
-
 
 // structure of lilac parent directory is like this:
 // lilac-configs (parent)/
@@ -15,8 +12,6 @@ import { YAML } from "bun";
 // │   ├── lilac.yaml
 // │   └── ...
 // └── ...
-
-
 
 // returns all package name in the Lilac config files
 export function readLilacConfigs(PkgbuildParentPaths: string[]): string[] {
