@@ -27,7 +27,9 @@ jobs:
         run: bun run build
 
       - name: Prepare Artifact
-        run: mv ./dist/index.js ./dist/archavenger.min.js
+        run: |
+          mv ./dist/index.js ./dist/archavenger.min.js
+          mv ./dist/index.js.map ./dist/archavenger.min.js.map
 
       - name: Generate Release Notes
         env:
