@@ -76,4 +76,49 @@ describe("packageSorter", () => {
             "0:1.2.10.r1.abcdef12-1",
         ]);
     });
+
+    test("ignores leading zeroes in numeric segments", () => {
+        expect(sortVersions([
+            pkg("1.001"),
+            pkg("1.010"),
+            pkg("1.002"),
+        ])).toEqual([
+            "0:1.001-1",
+            "0:1.002-1",
+            "0:1.010-1",
+        ]);
+    });
+
+    test("orders an empty release before a populated release", () => {
+        expect(packageSorter(
+            { arch: "x86_64", epoch: 0, pkgver: "1.0", pkgrel: "" },
+            pkg("1.0", "1"),
+        )).toBeLessThan(0);
+    });
+
+    test("orders separator-heavy versions after plain versions", () => {
+        expect(sortVersions([
+            pkg("1.0__1"),
+            pkg("1.0_1"),
+            pkg("1.0"),
+        ])).toEqual([
+            "0:1.0-1",
+            "0:1.0_1-1",
+            "0:1.0__1-1",
+        ]);
+    });
+
+    test("sorts mixed alpha and numeric tails consistently", () => {
+        expect(sortVersions([
+            pkg("1.0b2"),
+            pkg("1.0b10"),
+            pkg("1.0a10"),
+            pkg("1.0a2"),
+        ])).toEqual([
+            "0:1.0a2-1",
+            "0:1.0a10-1",
+            "0:1.0b2-1",
+            "0:1.0b10-1",
+        ]);
+    });
 });
